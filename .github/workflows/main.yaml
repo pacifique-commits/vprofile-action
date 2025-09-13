@@ -92,14 +92,23 @@ jobs:
 
       - name: Print config file
         run: cat ~/.kube/config
+        
+      - name: Upload kubeconfig for Lens
+        uses: actions/upload-artifact@v4
+        with:
+          name: kubeconfig
+          path: ~/.kube/config
 
+      - name: Test kubectl connection
+        run: kubectl get nodes
+        
       - name: Login to ECR
         run: |
           kubectl create secret docker-registry regcred \
             --docker-server=${{ secrets.REGISTRY }} \
             --docker-username=AWS \
             --docker-password=$(aws ecr get-login-password) \
-            --dry-run=client -o yaml | kubectl apply -f - 
+            --dry-run=client -o yaml --validate=false | kubectl apply -f - 
 
       - name: Deploy Helm
         uses: bitovi/github-actions-deploy-eks-helm@v1.2.8
@@ -112,4 +121,5 @@ jobs:
           chart-path: helm/vprofilecharts
           namespace: default
           values: appimage=${{ secrets.REGISTRY }}/${{ env.ECR_REPOSITORY }},apptag=${{ github.run_number }}
-          name: vprofile-stack    
+          name: vprofile-stack
+          
